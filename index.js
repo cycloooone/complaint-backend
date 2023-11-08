@@ -210,7 +210,7 @@ if(pool){
 
   
 
-app.post('/api/register',  async (req, res) => {
+app.post('/register',  async (req, res) => {
     const { username, password, role_name } = req.body;
         let conn;
     try {
@@ -233,12 +233,12 @@ app.post('/api/register',  async (req, res) => {
         }
     }
   });
-  app.post('/api/login', async (req, res) => {
+  app.post('/login', async (req, res) => {
     const { username, password } = req.body;
         let conn;
     try {
         let query = `
-        select password, role_name from users
+        select password, role_name, user_id from users
         where username = '${username}'
         `
         conn = await pool.connect();
@@ -251,7 +251,8 @@ app.post('/api/register',  async (req, res) => {
             console.log('correct')
         }
         let role_name = data.rows[0].role_name;
-        const accessToken = await jwt.sign({username: username, role_name: role_name}, secretKey)
+        let user_id = data.rows[0].user_id;
+        const accessToken = await jwt.sign({username: username, role_name: role_name, user_id: user_id}, secretKey)
         console.log(role_name, username, accessToken)
         res.send({
             statusCode: 200,
@@ -259,6 +260,7 @@ app.post('/api/register',  async (req, res) => {
               access_token: accessToken,
               username: username,
               role_name: role_name,
+              user_id: user_id
             }
           });
           
@@ -275,7 +277,7 @@ app.post('/api/register',  async (req, res) => {
     let conn;
     try {
         let query = `
-        select username, role_name from users;
+        select username, role_name, user_id from users;
         `
         conn = await pool.connect();
         let data = await conn.query(query).catch(e => { throw `Ошибка : ${e.message}` });
@@ -332,6 +334,166 @@ app.post('/api/register',  async (req, res) => {
     
   });
   
+ 
+
+
+
+
+  //                                        desk logic
+
+
+
+
+  // Create a Desk
+  app.post('/desks/:desk_name/:user_id', async (req, res) => {
+    const desk_name = req.params.desk_name;
+    const user_id = req.params.user_id;
+    console.log('it goes here fuck man',desk_name, user_id)
+    try {
+        const query = `
+            INSERT INTO desk (desk_name) VALUES ($1)
+            RETURNING desk_id
+        `;
+        console.log(query)
+        const data = await pool.query(query, [desk_name]);
+        const deskId = data.rows[0].desk_id;
+        const collaboratorsQuery = `
+        INSERT INTO desk_collaborators (desk_id, user_id) VALUES ($1, $2)
+        `;
+        await pool.query(collaboratorsQuery, [deskId, user_id]);
+        res.status(201).json({ desk_id: data.rows[0].desk_id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to create a desk' });
+    }
+});
+
+// Create a Task for a Desk
+app.post('/tasks', async (req, res) => {
+    const { task_name, desk_id } = req.body;
+    try {
+        const query = `
+            INSERT INTO task (task_name, status, desk_id) VALUES ($1, 1, $2)
+        `;
+        const data = await pool.query(query, [task_name, desk_id]);
+
+        res.send({statusCode: 200 })
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to create a task' });
+    }
+});
+
+
+// get desks for user_id
+
+app.get('/desks/:user_id', async (req, res) => {
+    const user_id = req.params.user_id;
+    try {
+        const query = `
+        SELECT d.desk_id, d.desk_name
+        FROM desk d
+        JOIN desk_collaborators dc ON d.desk_id = dc.desk_id
+        WHERE dc.user_id = ${user_id};
+        `;
+        const data = await pool.query(query);
+        res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to retrieve collaborators for the desk' });
+    }
+});
+
+
+// get tasks for desk_id
+app.get('/tasks/:desk_id', async (req, res) => {
+    const desk_id = req.params.desk_id;
+    let conn;
+    try {
+        conn = await pool.connect();
+        const query = `
+        SELECT * FROM task
+        WHERE desk_id = $1
+        `;
+        const data = await conn.query(query, [desk_id]);
+        res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to update task status' });
+    } finally {
+        if (conn) {
+            await conn.release();
+        }
+    }
+});
+
+// adding collaborators to desk_id
+
+app.post('/colab', async (req, res) => {
+    console.log(req.body)
+    let {desk_id, userIDs} = req.body;
+    let conn;
+    try {
+        conn = await pool.connect();
+        let query = 'INSERT INTO desk_collaborators (desk_id, user_id) VALUES ';
+        for (let i = 0; i < userIDs.length; i++) {
+            query += `(${desk_id}, ${userIDs[i]})${i < userIDs.length - 1 ? ',' : ''}`;
+        }
+        const data = await conn.query(query);
+        res.status(204).send();
+        // const data = await conn.query(query, [desk_id]);
+        // res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to update task status' });
+    } finally {
+        if (conn) {
+            await conn.release();
+        }
+    }
+});
+
+// get users not related to desk_id
+
+app.get('/collaborators/:desk_id', async (req, res) => {
+    const desk_id = req.params.desk_id;
+    try {
+        const query = `
+        SELECT u.user_id, u.username
+        FROM users u
+        LEFT JOIN desk_collaborators dc ON u.user_id = dc.user_id AND dc.desk_id = ${desk_id}
+        WHERE dc.desk_id IS NULL;
+        `;
+        const data = await pool.query(query);
+        res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to retrieve users not related to the desk' });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
