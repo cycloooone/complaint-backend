@@ -18,12 +18,12 @@ const { Pool } = require('pg');
 const secretKey = 'jwt-secret-key';
 
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'apc',
-    password: '1907',
-    port: 5432,
-  });
+  user: 'postgres',
+  host: 'localhost',
+  database: 'asset',
+  password: 'asset228',
+  port: 5432,
+});
 if(pool){
     console.log('PostgreSQL connected ')
 }
@@ -211,15 +211,15 @@ if(pool){
   
 
 app.post('/register',  async (req, res) => {
-    const { username, password, role_name } = req.body;
+    const { username, password, role_name, phone_number, mail, department  } = req.body;
         let conn;
     try {
         const hashedPassword  = await bcrypt.hash(password, 10);
         let query2 = `
         insert into users
-            (username, password, role_name)
+            (username, password, role_name, number, mail, department)
         values 
-            ('${username}', '${hashedPassword}', '${role_name}')
+            ('${username}', '${hashedPassword}', '${role_name}','${phone_number}','${mail}', '${department}' )
         `
         conn = await pool.connect();
         await conn.query(query2).catch(e => { throw `ошибка создания пользователя : ${e.message}` });
@@ -238,7 +238,7 @@ app.post('/register',  async (req, res) => {
         let conn;
     try {
         let query = `
-        select password, role_name, user_id from users
+        select password, role_name, user_id, number, mail, department from users
         where username = '${username}'
         `
         conn = await pool.connect();
@@ -260,7 +260,10 @@ app.post('/register',  async (req, res) => {
               access_token: accessToken,
               username: username,
               role_name: role_name,
-              user_id: user_id
+              user_id: user_id,
+              number: number,
+              mail: mail,
+              department: department
             }
           });
           
@@ -277,10 +280,11 @@ app.post('/register',  async (req, res) => {
     let conn;
     try {
         let query = `
-        select username, role_name, user_id from users;
+        select username, role_name, number, mail, department from users
         `
         conn = await pool.connect();
         let data = await conn.query(query).catch(e => { throw `Ошибка : ${e.message}` });
+        console.log(data)
         res.json(data)
           
     } catch (err) {
@@ -293,11 +297,14 @@ app.post('/register',  async (req, res) => {
   });
   app.put('/updateUserRole/:username', async (req, res) => {
     let { username } = req.params;
-    let { role_name } = req.body;
+    let { role_name, phone_number, mail, department } = req.body;
     let conn;
     try{
         let query = `update users
-        set role_name = '${role_name}'
+        set role_name = '${role_name}',
+            number= '${phone_number}',
+            mail= '${mail}',
+            department= '${department}'
         where username = '${username}';
         `
         conn = await pool.connect();
