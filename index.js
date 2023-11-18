@@ -272,7 +272,7 @@ app.post('/register',  async (req, res) => {
         } 
     }
   });
-
+  // get all users from database
   app.get('/users', async (req, res) => {
     let conn;
     try {
