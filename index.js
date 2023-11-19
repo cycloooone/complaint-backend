@@ -1,29 +1,21 @@
-const express = require('express');
-const cors = require('cors');
+
+import { user_delete, collaborator_delete } from './controllers/delete_user.js';
+import express from 'express';
+import cors from 'cors';
 const app = express();
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
-const Minio = require('minio');
-const multer = require('multer')
-const fileUpload = require('express-fileupload')
-const fs = require('fs').promises
-const {Client} = require('pg')
-const client = new Client();
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import * as Minio from 'minio';
+import multer from 'multer';
+import fileUpload from 'express-fileupload';
+
 app.use(cors());
 app.use(express.json());
 app.use(fileUpload({
     createParentPath: true
 }))
-const { Pool } = require('pg');
+import pool from './database/config.js'
 const secretKey = 'jwt-secret-key';
-
-const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'asset',
-  password: 'asset228',
-  port: 5432,
-});
 if(pool){
     console.log('PostgreSQL connected ')
 }
@@ -39,7 +31,6 @@ if(pool){
     secretKey: '5pdkFqwHeS1vfyKMXGvPkMyXt6i9PEAVvJe6Uup4'
 
   });
-
   const storage = multer.memoryStorage();
   const upload = multer();
 
@@ -211,16 +202,18 @@ if(pool){
   
 
 app.post('/register',  async (req, res) => {
-    const { username, password, role_name, phone_number, mail, department  } = req.body;
+    const { username, password, role_name, phone_number, mail, department, name, surname, image  } = req.body;
         let conn;
     try {
         const hashedPassword  = await bcrypt.hash(password, 10);
         let query2 = `
         insert into users
-            (username, password, role_name, number, mail, department)
+            (username, password, role_name, number, mail, department, name, surname, image)
         values 
-            ('${username}', '${hashedPassword}', '${role_name}','${phone_number}','${mail}', '${department}' )
+            ('${username}', '${hashedPassword}', '${role_name}','${phone_number}','${mail}', '${department}',
+            '${name}','${surname}', '${image}' )
         `
+        console.log(query2)
         conn = await pool.connect();
         await conn.query(query2).catch(e => { throw `ошибка создания пользователя : ${e.message}` });
         res.status(204).send();
@@ -250,8 +243,7 @@ app.post('/register',  async (req, res) => {
         else{
             console.log('correct')
         }
-        let role_name = data.rows[0].role_name;
-        let user_id = data.rows[0].user_id;
+        let {number, mail, department, role_name, user_id } = data.rows[0];
         const accessToken = await jwt.sign({username: username, role_name: role_name, user_id: user_id}, secretKey)
         console.log(role_name, username, accessToken)
         res.send({
@@ -263,7 +255,7 @@ app.post('/register',  async (req, res) => {
               user_id: user_id,
               number: number,
               mail: mail,
-              department: department
+              department: department,
             }
           });
           
@@ -280,12 +272,34 @@ app.post('/register',  async (req, res) => {
     let conn;
     try {
         let query = `
-        select username, role_name, number, mail, department from users
+        select user_id, username, name, surname, role_name, number, mail, image, department from users
         `
         conn = await pool.connect();
         let data = await conn.query(query).catch(e => { throw `Ошибка : ${e.message}` });
-        console.log(data)
         res.json(data)
+          
+    } catch (err) {
+        throw err;
+    } finally {
+        if (conn) {
+            await conn.release()
+        } 
+    }
+  });
+  // get one user from database
+  app.get('/users/:user_id', async (req, res) => {
+    let conn;
+    let {user_id} = req.params;
+    console.log(user_id)
+    try {
+        let query = `
+        select username, name, surname, role_name, number, mail, department, image from users
+        where user_id = ${user_id}
+        `
+        console.log(query)
+        conn = await pool.connect();
+        let data = await conn.query(query).catch(e => { throw `Ошибка : ${e.message}` });
+        res.json(data.rows)
           
     } catch (err) {
         throw err;
@@ -297,14 +311,11 @@ app.post('/register',  async (req, res) => {
   });
   app.put('/updateUserRole/:username', async (req, res) => {
     let { username } = req.params;
-    let { role_name, phone_number, mail, department } = req.body;
+    let { role_name, phone_number, mail, department, name, surname } = req.body;
     let conn;
     try{
         let query = `update users
         set role_name = '${role_name}',
-            number= '${phone_number}',
-            mail= '${mail}',
-            department= '${department}'
         where username = '${username}';
         `
         conn = await pool.connect();
@@ -321,24 +332,12 @@ app.post('/register',  async (req, res) => {
     
   })
   // delete
-  app.delete('/users/:username', async (req, res) => {
-    let { username } = req.params;
-    let conn;
-    try{
-        let query = `delete from users
-        where username = '${username}';
-        `
-        conn = await pool.connect();
-        await conn.query(query).catch(e => {throw `Ошибка : ${e.message}` })
-        res.send({statusCode: 200 })
-    } catch(err){
-        throw err;
-    } finally{
-        if(conn){
-            await conn.release()
-        }
-    }
-    
+  
+  app.delete('/users/:user_id', async (req, res) => {
+    let user_id = req.params.user_id;
+    await collaborator_delete(user_id)
+    await user_delete(user_id)
+    res.send({statusCode: 200 })
   });
   
  
