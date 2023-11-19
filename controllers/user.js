@@ -8,15 +8,17 @@ export async function addUser(req, res){
         let conn;
     try {
         const hashedPassword  = await bcrypt.hash(password, 10);
-        let query2 = `
-        insert into users
+        const query2 = `
+            INSERT INTO users
             (username, password, role_name, number, mail, department, name, surname, image)
-        values 
-            ('${username}', '${hashedPassword}', '${role_name}','${phone_number}','${mail}', '${department}',
-            '${name}','${surname}', '${image}' )
-        `
+            VALUES 
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `;
+            const values = [
+                username, hashedPassword, role_name, phone_number, mail, department, name, surname, image
+            ];
         conn = await pool.connect();
-        await conn.query(query2).catch(e => { throw `ошибка создания пользователя : ${e.message}` });
+        await conn.query(query2, values).catch(e => { throw `ошибка создания пользователя : ${e.message}` });
         res.status(204).send();
 
     } catch (err) {
@@ -29,6 +31,7 @@ export async function addUser(req, res){
 }
 export async function checkUser(req, res){
     const { username, password } = req.body;
+    console.log(username, password)
     console.log(username, password)
         let conn;
     try {
@@ -62,7 +65,8 @@ export async function checkUser(req, res){
           });
           
     } catch (err) {
-        throw err;
+        console.error('Error during login:', err);
+        res.status(500).json({ message: 'Internal Server Error' });
     } finally {
         if (conn) {
             await conn.release()

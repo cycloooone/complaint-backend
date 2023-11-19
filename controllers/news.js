@@ -12,7 +12,7 @@ export async function getNews(req, res){
         res.json(data)
           
     } catch (err) {
-        throw err;
+        console.log(err)
     } finally {
         if (conn) {
             await conn.release()

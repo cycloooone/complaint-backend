@@ -8,7 +8,7 @@ export async function user_delete(user_id){
         conn = await pool.connect();
         await conn.query(query).catch(e => {throw `Ошибка : ${e.message}` })
     } catch(err){
-        throw err;
+        console.log(err)
     } finally{
         if(conn){
             await conn.release()
@@ -24,7 +24,7 @@ export async function collaborator_delete(user_id){
         conn = await pool.connect();
         await conn.query(query).catch(e => {throw `Ошибка : ${e.message}` })
     } catch(err){
-        throw err;
+        console.log(err)
     } finally{
         if(conn){
             await conn.release()
