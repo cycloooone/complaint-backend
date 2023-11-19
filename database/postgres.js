@@ -1,5 +1,5 @@
 import pkg from 'pg';
-const {Pool} = pkg;
+const { Pool } = pkg;
 const pool =  new Pool({
     user: 'postgres',
     host: 'localhost',
@@ -7,4 +7,4 @@ const pool =  new Pool({
     password: '1907',
     port: 5432,
   });
-export default pool;
+export default pool

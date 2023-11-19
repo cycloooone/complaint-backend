@@ -1,4 +1,4 @@
-import pool from '../database/config.js';
+import pool from '../database/postgres.js';
 export async function user_delete(user_id){
     let conn;
     try{
