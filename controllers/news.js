@@ -21,17 +21,18 @@ export async function getNews(req, res){
 }
 
 export async function addNews(req, res){
-    const { title, description, text, image, video } = req.body;
+    const { title, description, text, image, video, author } = req.body;
         let conn;
+    console.log(author)
         
     try {
         let query2 = `
         insert into news
-            (title, description, text, image, video)
+            (title, description, text, image, video, author)
         values 
-            ($1, $2, $3, $4, $5)
+            ($1, $2, $3, $4, $5, $6)
         `
-        const values = [title, description, text, image, video];
+        const values = [title, description, text, image, video, author];
         console.log(query2, values)
         conn = await pool.connect();
         await conn.query(query2, values).catch(e => { throw `ошибка создания новостя : ${e.message}` });

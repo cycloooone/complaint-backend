@@ -4,6 +4,7 @@ import { addUser, checkUser, getUsers, getUser, updateUser, deleteUser } from '.
 import { addDesk, addTask, getDesk, getTask, addColab, getCollabs} from './controllers/desk.js'
 import express from 'express';
 import cors from 'cors';
+import minioClient from "./database/minio.js" 
 const app = express();
 
 // import multer from 'multer';  // I don't know what multer needed
@@ -19,15 +20,6 @@ import pool from './database/postgres.js'
 if(pool){
     console.log('PostgreSQL connected ')
 }
-
-
-
-
-  
-//   const storage = multer.memoryStorage();
-//   const upload = multer();               I don't know why we need it
-
-
 
 app.get('/news', getNews)
 app.delete('/news', deleteNews);
@@ -52,6 +44,8 @@ app.get('/tasks/:desk_id', getTask);
 
 app.post('/colab', addColab);
 app.get('/collaborators/:desk_id', getCollabs );
+
+
 
 
 

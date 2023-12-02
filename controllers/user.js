@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import {user_delete, collaborator_delete} from './delete_user.js'
 const secretKey = 'jwt-secret-key';
 export async function addUser(req, res){
-    const { username, password, role_name, phone_number, mail, department, name, surname, image  } = req.body;
+    const { username, password, role_name, number, mail, department, name, surname, image  } = req.body;
+    console.log(number)
         let conn;
     try {
         const hashedPassword  = await bcrypt.hash(password, 10);
@@ -15,7 +16,7 @@ export async function addUser(req, res){
             ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             `;
             const values = [
-                username, hashedPassword, role_name, phone_number, mail, department, name, surname, image
+                username, hashedPassword, role_name, number, mail, department, name, surname, image
             ];
         conn = await pool.connect();
         await conn.query(query2, values).catch(e => { throw `ошибка создания пользователя : ${e.message}` });
@@ -36,7 +37,7 @@ export async function checkUser(req, res){
         let conn;
     try {
         let query = `
-        select password, role_name, user_id, number, mail, department from users
+        select password, role_name, user_id, number, mail, department, image, name, surname from users
         where username = '${username}'
         `
         conn = await pool.connect();
@@ -48,7 +49,7 @@ export async function checkUser(req, res){
         else{
             console.log('correct')
         }
-        let {number, mail, department, role_name, user_id } = data.rows[0];
+        let {number, mail, department, role_name, user_id, image, name, surname} = data.rows[0];
         const accessToken = await jwt.sign({username: username, role_name: role_name, user_id: user_id}, secretKey)
         console.log(role_name, username, accessToken)
         res.send({
@@ -56,11 +57,14 @@ export async function checkUser(req, res){
             data: {
               access_token: accessToken,
               username: username,
+              name: name,
+              surname: surname,
               role_name: role_name,
               user_id: user_id,
               number: number,
               mail: mail,
               department: department,
+              image: image,
             }
           });
           
@@ -115,8 +119,7 @@ export async function getUser(req, res){
     }
 }
 export async function updateUser(req, res){
-    let { username } = req.params;
-    let { role_name, phone_number, mail, department, name, surname } = req.body;
+    let { username, role_name, number, mail, department, name, surname } = req.body;
     let conn;
     try{
         let query = `update users
