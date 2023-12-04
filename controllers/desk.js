@@ -1,13 +1,13 @@
 import pool from '../database/postgres.js';
+import {multi_collaborator_delete, task_delete, desk_delete} from '../controllers/delete_desk.js'
 export async function addDesk(req, res){
     const {desk_name, user_id} = req.body;
-    console.log('it goes here fuck man',desk_name, user_id)
+    console.log(desk_name, user_id)
     try {
         const query = `
             INSERT INTO desk (desk_name) VALUES ($1)
             RETURNING desk_id
         `;
-        console.log(query)
         const data = await pool.query(query, [desk_name]);
         const deskId = data.rows[0].desk_id;
         const collaboratorsQuery = `
@@ -21,12 +21,13 @@ export async function addDesk(req, res){
     }
 }
 export async function addTask(req, res){
-    const { task_name, desk_id } = req.body;
+    const { task_name, start_date, end_date } = req.body;
+    console.log(task_name, start_date, end_date)
     try {
         const query = `
-            INSERT INTO task (task_name, status, desk_id) VALUES ($1, 1, $2)
+            INSERT INTO task (task_name, status, desk_id, start_date, end_date) VALUES ($1, 'not started', 27, $2, $3)
         `;
-        const data = await pool.query(query, [task_name, desk_id]);
+        const data = await pool.query(query, [task_name, start_date, end_date]);
 
         res.send({statusCode: 200 })
     } catch (err) {
@@ -97,7 +98,7 @@ export async function addColab(req, res){
 }
 
 
-export async function getCollabs(req, res){
+export async function getNotCollabs(req, res){
     const desk_id = req.params.desk_id;
     try {
         const query = `
@@ -112,4 +113,29 @@ export async function getCollabs(req, res){
         console.error(err);
         res.status(500).json({ message: 'Failed to retrieve users not related to the desk' });
     }
+}
+export async function getCollabs(req, res){
+    const desk_id = req.params.desk_id;
+    try {
+        const query = `
+        SELECT u.user_id, u.username, u.image, u.name, u.surname
+        FROM users u
+        JOIN desk_collaborators dc ON u.user_id = dc.user_id
+        WHERE dc.desk_id = ${desk_id};
+        `;
+        const data = await pool.query(query);
+        res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to retrieve users related to the desk' });
+    }
+}
+
+
+export async function deleteDesk(req, res){
+    let desk_id = req.params.desk_id;
+    await multi_collaborator_delete(desk_id)
+    await task_delete(desk_id)
+    await desk_delete(desk_id)
+    res.send({statusCode: 200 })
 }

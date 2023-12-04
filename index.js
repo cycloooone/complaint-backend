@@ -1,7 +1,7 @@
 import { getNews, addNews, deleteNews } from './controllers/news.js'
 import { uploadFile, getFile } from './controllers/file.js'
 import { addUser, checkUser, getUsers, getUser, updateUser, deleteUser } from './controllers/user.js'
-import { addDesk, addTask, getDesk, getTask, addColab, getCollabs} from './controllers/desk.js'
+import { addDesk, addTask, getDesk, getTask, addColab, getNotCollabs, getCollabs, deleteDesk} from './controllers/desk.js'
 import express from 'express';
 import cors from 'cors';
 import minioClient from "./database/minio.js" 
@@ -41,9 +41,13 @@ app.post('/desks', addDesk);
 app.post('/tasks', addTask);
 app.get('/desks/:user_id', getDesk);
 app.get('/tasks/:desk_id', getTask);
+app.delete('/desks/:desk_id', deleteDesk)
 
 app.post('/colab', addColab);
-app.get('/collaborators/:desk_id', getCollabs );
+app.get('/notcollaborators/:desk_id', getNotCollabs );
+app.get('/collaborators/:desk_id', getCollabs);
+
+
 
 
 
