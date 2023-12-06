@@ -25,7 +25,7 @@ export async function addTask(req, res){
     console.log(task_name, start_date, end_date)
     try {
         const query = `
-            INSERT INTO task (task_name, status, desk_id, start_date, end_date) VALUES ($1, 'not started', 27, $2, $3)
+            INSERT INTO task (task_name, status, desk_id, start_date, end_date) VALUES ($1, 'not started', 29, $2, $3)
         `;
         const data = await pool.query(query, [task_name, start_date, end_date]);
 
