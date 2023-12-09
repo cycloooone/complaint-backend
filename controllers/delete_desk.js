@@ -2,7 +2,24 @@ import pool from '../database/postgres.js';
 export async function task_delete(desk_id){
     let conn;
     try{
-        let query = `delete from task
+        let query = 
+        `DELETE FROM task
+        WHERE column_id IN (SELECT column_id FROM columns WHERE desk_id = ${desk_id});
+        `
+        conn = await pool.connect();
+        await conn.query(query).catch(e => {throw `Ошибка : ${e.message}` })
+    } catch(err){
+        console.log(err)
+    } finally{
+        if(conn){
+            await conn.release()
+        }
+    }
+}
+export async function column_delete(desk_id){
+    let conn;
+    try{
+        let query = `delete from columns
         where desk_id = ${desk_id};
         `
         conn = await pool.connect();
