@@ -1,7 +1,7 @@
 import { getNews, addNews, deleteNews } from './controllers/news.js'
 import { uploadFile, getFile } from './controllers/file.js'
 import { addUser, checkUser, getUsers, getUser, updateUser, deleteUser } from './controllers/user.js'
-import { addDesk, addTask, addColumn, getDesk, getAllTask, getTasks, getColumn, addDeskColab, getNotCollabs, getCollabs, deleteDesk, getOneTask} from './controllers/desk.js'
+import { addDesk, addTask, addColumn, getDesk, getAllTask, getTasks, getColumn, addDeskColab, getNotCollabs, getCollabs, deleteDesk, getOneTask, addTaskColab} from './controllers/desk.js'
 import express from 'express';
 import cors from 'cors';
 const app = express();
@@ -13,12 +13,10 @@ app.use(fileUpload({
     createParentPath: true
 }))
 
-
 import pool from './database/postgres.js'
 if(pool){
     console.log('PostgreSQL connected ')
 }
-
 
 app.get('/news', getNews)
 app.post('/add-news', addNews);
@@ -26,8 +24,6 @@ app.delete('/news', deleteNews);
 
 app.get('/file/:bucketName/:fileName', getFile);
 app.post('/file/upload', uploadFile);
-
-
 
 app.post('/register', addUser);
 app.post('/login', checkUser);
@@ -50,6 +46,7 @@ app.delete('/desks/:desk_id', deleteDesk)
 app.get('/notcollaborators/:desk_id', getNotCollabs );
 app.get('/collaborators/:desk_id', getCollabs);
 app.post('/colab', addDeskColab);
+app.post('taskColab', addTaskColab)
 
 
 app.listen(3000, () => {   

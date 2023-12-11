@@ -181,6 +181,26 @@ export async function addDeskColab(req, res){
         }
     }
 }
+export async function addTaskColab(req, res){
+    let {task_id, userIDs} = req.body;
+    let conn;
+    try {
+        conn = await pool.connect();
+        let query = 'INSERT INTO task_collaborators (task_id, user_id) VALUES ';
+        for (let i = 0; i < userIDs.length; i++) {
+            query += `(${task_id}, ${userIDs[i]})${i < userIDs.length - 1 ? ',' : ''}`;
+        }
+        const data = await conn.query(query);
+        res.status(204).send();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to update task status' });
+    } finally {
+        if (conn) {
+            await conn.release();
+        }
+    }
+}
 
 
 export async function getNotCollabs(req, res){
