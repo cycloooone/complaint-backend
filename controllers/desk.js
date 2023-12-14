@@ -1,5 +1,5 @@
 import pool from '../database/postgres.js';
-import {multi_collaborator_delete, task_delete, desk_delete, column_delete} from '../controllers/delete_desk.js'
+import {multi_collaborator_delete, task_delete, desk_delete, column_delete, task_collaborator_delete} from '../controllers/delete_desk.js'
 export async function addDesk(req, res){
     const {desk_name, user_id, image} = req.body;
     console.log(desk_name, user_id)
@@ -27,6 +27,20 @@ export async function addTask(req, res){
             INSERT INTO task (task_name, status, column_id) VALUES ($1, 'not started', $2)
         `;  
         const data = await pool.query(query, [task_name, column_id]);
+
+        res.send({statusCode: 200})
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to create a task' });
+    }
+}
+export async function addTaskStatus(req, res){
+    const { task_id, status } = req.body;
+    try {
+        const query = ` 
+            UPDATE task SET status = $1 WHERE task_id = $2;
+        `;  
+        const data = await pool.query(query, [status, task_id]);
 
         res.send({statusCode: 200})
     } catch (err) {
@@ -80,9 +94,7 @@ export async function getAllTask(req, res){
         FROM task
         JOIN
         columns ON task.column_id = columns.column_id
-        WHERE columns.desk_id = $1;
-
-        `;
+        WHERE columns.desk_id = $1 order by task.task_id`;
         const data = await conn.query(query, [desk_id]);
         res.status(200).json(data.rows);
     } catch (err) {
@@ -101,10 +113,10 @@ export async function getColumn(req, res){
         conn = await pool.connect();
         const query = `
         SELECT * FROM columns
-        WHERE desk_id = $1;
+        WHERE desk_id = $1 order by column_id;
         `;
         const data = await conn.query(query, [desk_id]);
-        res.status(200).json(data.rows);
+        res.status(200).json(data.rows)
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Failed to get column status' });
@@ -135,6 +147,32 @@ export async function getTasks(req, res){
         }
     }
 }
+export async function getUserTasks(req, res){
+    const {column_id, user_id} = req.params;
+    let conn;
+    try {
+        conn = await pool.connect();
+        const query = `
+        SELECT t.task_id, t.task_name, t.status, t.column_id
+        FROM task t
+        JOIN task_collaborators tc ON t.task_id = tc.task_id
+        WHERE t.column_id = $1
+        AND tc.user_id = $2;
+        `;
+        console.log(query)
+        const data = await conn.query(query, [column_id, user_id]);
+        res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to get tasks from column' });
+    } finally {
+        if (conn) {
+            await conn.release();
+        }
+    }
+}
+
+
 export async function getOneTask(req, res){
     const task_id = req.params.task_id;
     let conn;
@@ -159,7 +197,7 @@ export async function getOneTask(req, res){
 
 
 
-export async function addDeskColab(req, res){
+export async function addDeskCollab(req, res){
     let {desk_id, userIDs} = req.body;
     let conn;
     try {
@@ -170,8 +208,6 @@ export async function addDeskColab(req, res){
         }
         const data = await conn.query(query);
         res.status(204).send();
-        // const data = await conn.query(query, [desk_id]);
-        // res.status(200).json(data.rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Failed to update task status' });
@@ -181,7 +217,7 @@ export async function addDeskColab(req, res){
         }
     }
 }
-export async function addTaskColab(req, res){
+export async function addTaskCollab(req, res){
     let {task_id, userIDs} = req.body;
     let conn;
     try {
@@ -235,11 +271,51 @@ export async function getCollabs(req, res){
         res.status(500).json({ message: 'Failed to retrieve users related to the desk' });
     }
 }
+export async function getTaskCollabs(req, res){
+    const task_id = req.params.task_id;
+    try {
+        const query = `
+        SELECT u.user_id, u.username, u.name, u.surname
+        FROM users u
+        JOIN task_collaborators tc ON u.user_id = tc.user_id
+        WHERE tc.task_id = ${task_id};
+
+        `;
+        const data = await pool.query(query);
+        res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to retrieve users related to the desk' });
+    }
+}
+export async function getUserColumns(req, res){
+    const {user_id, desk_id} = req.params;
+    console.log(user_id, desk_id)
+    try {
+        const query = `
+        SELECT DISTINCT columns.*
+        FROM task_collaborators
+        JOIN task ON task_collaborators.task_id = task.task_id
+        JOIN columns ON task.column_id = columns.column_id
+        WHERE task_collaborators.user_id = ${user_id}
+        AND columns.desk_id = ${desk_id};
+
+
+
+        `;
+        const data = await pool.query(query);
+        res.status(200).json(data.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to retrieve columns related to the desk to user' });
+    }
+}
 
 
 export async function deleteDesk(req, res){
     let desk_id = req.params.desk_id;
     await multi_collaborator_delete(desk_id)
+    await task_collaborator_delete(desk_id)
     await task_delete(desk_id)
     await column_delete(desk_id)
     await desk_delete(desk_id)
