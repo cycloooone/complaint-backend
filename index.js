@@ -33,7 +33,7 @@ app.post('/login', checkUser);
 app.get('/users', getUsers);
 app.get('/users/:user_id', getUser);
 app.delete('/users/:user_id', deleteUser);
-app.put('/updateUserRole/:username', updateUser);
+app.put('/updateUserRole', updateUser);
   
 app.get('/desks/:user_id', getDesk);
 app.get('/tasksAll/:desk_id', getAllTask);

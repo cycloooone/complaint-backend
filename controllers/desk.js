@@ -157,7 +157,7 @@ export async function getUserTasks(req, res){
         FROM task t
         JOIN task_collaborators tc ON t.task_id = tc.task_id
         WHERE t.column_id = $1
-        AND tc.user_id = $2;
+        AND tc.user_id = $2 order by t.task_id;
         `;
         console.log(query)
         const data = await conn.query(query, [column_id, user_id]);

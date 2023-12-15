@@ -119,13 +119,15 @@ export async function getUser(req, res){
     }
 }
 export async function updateUser(req, res){
-    let { username, role_name, number, mail, department, name, surname } = req.body;
+    let { username, role_name } = req.body;
+    console.log(username, role_name)
     let conn;
     try{
         let query = `update users
-        set role_name = '${role_name}',
+        set role_name = '${role_name}'
         where username = '${username}';
         `
+        console.log(query)
         conn = await pool.connect();
         await conn.query(query).catch(e => {throw `Ошибка : ${e.message}` })
         res.send({statusCode: 200 })
