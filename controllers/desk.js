@@ -133,7 +133,7 @@ export async function getTasks(req, res){
         conn = await pool.connect();
         const query = `
         SELECT * FROM task
-        WHERE column_id = $1;
+        WHERE column_id = $1 order by task_id
 
         `;
         const data = await conn.query(query, [column_id]);
