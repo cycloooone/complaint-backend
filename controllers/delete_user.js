@@ -3,7 +3,7 @@ export async function user_delete(user_id){
     let conn;
     try{
         let query = `delete from users
-        where user_id = ${user_id};
+        where id = ${user_id};
         `
         conn = await pool.connect();
         await conn.query(query).catch(e => {throw `Ошибка : ${e.message}` })

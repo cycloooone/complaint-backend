@@ -4,19 +4,21 @@ import jwt from 'jsonwebtoken';
 import {user_delete, collaborator_delete} from './delete_user.js'
 const secretKey = 'jwt-secret-key';
 export async function addUser(req, res){
-    const { username, password, role_name, number, mail, department, name, surname, image  } = req.body;
-    console.log(number)
+    let { username, password, role_name, name, surname } = req.body;
+    console.log(username, password, role_name, name, surname)
         let conn;
     try {
+        console.log('ok')
         const hashedPassword  = await bcrypt.hash(password, 10);
+        role_name == null ? role_name = 'user' : role_name = role_name
         const query2 = `
             INSERT INTO users
-            (username, password, role_name, number, mail, department, name, surname, image)
+            (username, password, role_name, name, surname)
             VALUES 
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ($1, $2, $3, $4, $5)
             `;
             const values = [
-                username, hashedPassword, role_name, number, mail, department, name, surname, image
+                username, hashedPassword, role_name, name, surname
             ];
         conn = await pool.connect();
         await conn.query(query2, values).catch(e => { throw `ошибка создания пользователя : ${e.message}` });
@@ -25,6 +27,7 @@ export async function addUser(req, res){
     } catch (err) {
         throw err;
     } finally {
+        console.log('success')
         if (conn) {
             await conn.release()
         }
@@ -33,11 +36,10 @@ export async function addUser(req, res){
 export async function checkUser(req, res){
     const { username, password } = req.body;
     console.log(username, password)
-    console.log(username, password)
         let conn;
     try {
         let query = `
-        select password, role_name, user_id, number, mail, department, image, name, surname from users
+        select password, role_name, name, surname from users
         where username = '${username}'
         `
         conn = await pool.connect();
@@ -49,8 +51,8 @@ export async function checkUser(req, res){
         else{
             console.log('correct')
         }
-        let {number, mail, department, role_name, user_id, image, name, surname} = data.rows[0];
-        const accessToken = await jwt.sign({username: username, role_name: role_name, user_id: user_id}, secretKey)
+        let {role_name, name, surname} = data.rows[0];
+        const accessToken = await jwt.sign({username: username, role_name: role_name}, secretKey)
         console.log(role_name, username, accessToken)
         res.send({
             statusCode: 200,
@@ -60,11 +62,6 @@ export async function checkUser(req, res){
               name: name,
               surname: surname,
               role_name: role_name,
-              user_id: user_id,
-              number: number,
-              mail: mail,
-              department: department,
-              image: image,
             }
           });
           
@@ -82,7 +79,7 @@ export async function getUsers(req, res){
     let conn;
     try {
         let query = `
-        select user_id, username, name, surname, role_name, number, mail, image, department from users
+        select id, username, name, surname, role_name from users
         `
         conn = await pool.connect();
         let data = await conn.query(query).catch(e => { throw `Ошибка : ${e.message}` });
@@ -142,7 +139,6 @@ export async function updateUser(req, res){
 
 export async function deleteUser(req, res){
     let user_id = req.params.user_id;
-    await collaborator_delete(user_id)
     await user_delete(user_id)
     res.send({statusCode: 200 })
 }
