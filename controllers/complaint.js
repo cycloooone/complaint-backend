@@ -22,6 +22,28 @@ export async function createComplaint(req, res) {
         sendConfirmationEmail(client_fullname, client_email);
     }
 }
+export async function statusComplaint(req, res) {
+    const { id, status } = req.body;
+    const values = [status, id];
+    let conn;
+    try {
+        const query = `
+        UPDATE complaint
+        SET status = $1
+        WHERE id = $2
+        `;
+        conn = await pool.connect();
+        await conn.query(query, values).catch(e => { throw `ошибка создания жалобы : ${e.message}` });
+        res.status(204).send();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to add a complaint' });
+    }
+    finally {
+        console.log('it works well')
+        // sendConfirmationEmail(client_fullname, client_email);
+    }
+}
 
 export async function deleteComplaint(req, res){
     let conn;
