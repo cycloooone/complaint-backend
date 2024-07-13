@@ -19,7 +19,6 @@ export async function createComplaint(req, res) {
         res.status(500).json({ message: 'Failed to add a complaint' });
     }
     finally {
-        sendConfirmationEmail(client_fullname, client_email);
     }
 }
 export async function statusComplaint(req, res) {
@@ -38,10 +37,6 @@ export async function statusComplaint(req, res) {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Failed to add a complaint' });
-    }
-    finally {
-        console.log('it works well')
-        // sendConfirmationEmail(client_fullname, client_email);
     }
 }
 
@@ -107,29 +102,3 @@ export async function deleteCategory(req, res){
         res.status(500).json({ message: 'Failed to delete a category' });
     }
 }
-
-
-function sendConfirmationEmail(name, email) {
-    console.log(email,name)
-    const transporter = nodemailer.createTransport({
-      service: 'Mail.ru',
-      auth: {
-        type: 'login',
-        user: 'akzat1907@mail.ru',
-        pass: 'vPhWSWLcv8UjEzT4RuKn'
-      }
-    });
-    const mailOptions = {
-      from: 'akzat1907@mail.ru',
-      to: email,
-      subject: 'Подтверждение: Жалоба получена',
-      text: `Dear ${name},\n\nСпасибо за отправку жалобы. Мы получили его и решим его как можно скорее..\n\nС наилучшими пожеланиями,\nSimple Fast Food`
-    };
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log('Error occurred:', error);
-      } else {
-        console.log('Email sent:', info.response);
-      }
-    });
-  }
